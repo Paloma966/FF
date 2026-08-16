@@ -12,16 +12,15 @@ import (
 )
 
 // RunLoop orchestrates one iteration of the story production cycle:
-// Director → [User Review] → Protagonist → Chapter → Save.
+// Director → [Protagonist verifies / Director revises] → Protagonist →
+// [Director verifies / Protagonist revises] → Chapter → Save.
 type RunLoop struct {
-	director     *DirectorAgent
-	protagonist  *ProtagonistAgent
-	chapter      *ChapterGenerator
-	loader       *storage.Loader
-	saver        *storage.Saver
-	llmDirector  llm.LLMClient
-	llmProtagonist llm.LLMClient
-	llmChapter   llm.LLMClient
+	director    *DirectorAgent
+	protagonist *ProtagonistAgent
+	chapter     *ChapterGenerator
+	premise     *PremiseGenerator
+	loader      *storage.Loader
+	saver       *storage.Saver
 }
 
 // LoopConfig configures the RunLoop with potentially different LLM clients per agent.
@@ -29,6 +28,7 @@ type LoopConfig struct {
 	DirectorLLM    llm.LLMClient
 	ProtagonistLLM llm.LLMClient
 	ChapterLLM     llm.LLMClient
+	PremiseLLM     llm.LLMClient
 	POV            string
 	Tense          string
 }
@@ -36,14 +36,12 @@ type LoopConfig struct {
 // NewRunLoop creates a new RunLoop.
 func NewRunLoop(loader *storage.Loader, saver *storage.Saver, cfg LoopConfig) *RunLoop {
 	return &RunLoop{
-		director:       NewDirectorAgent(cfg.DirectorLLM),
-		protagonist:    NewProtagonistAgent(cfg.ProtagonistLLM),
-		chapter:        NewChapterGenerator(cfg.ChapterLLM),
-		loader:         loader,
-		saver:          saver,
-		llmDirector:    cfg.DirectorLLM,
-		llmProtagonist: cfg.ProtagonistLLM,
-		llmChapter:     cfg.ChapterLLM,
+		director:    NewDirectorAgent(cfg.DirectorLLM),
+		protagonist: NewProtagonistAgent(cfg.ProtagonistLLM),
+		chapter:     NewChapterGenerator(cfg.ChapterLLM),
+		premise:     NewPremiseGenerator(cfg.PremiseLLM),
+		loader:      loader,
+		saver:       saver,
 	}
 }
 
@@ -53,6 +51,35 @@ type RunResult struct {
 	Analysis *DirectorOutput
 	Reaction *models.ProtagonistReaction
 	Chapter  string
+}
+
+// ChapterResult is one finished chapter plus its verification traces.
+type ChapterResult struct {
+	RunResult
+	EventTrace    VerifyTrace
+	ReactionTrace VerifyTrace
+}
+
+// NovelResult is the outcome of a full-novel run.
+type NovelResult struct {
+	Chapters []ChapterResult
+}
+
+// loadStoryState loads world, protagonist, and recent events in one go.
+func (rl *RunLoop) loadStoryState() (*models.WorldState, *models.Character, []models.Event, error) {
+	world, err := rl.loader.LoadWorld()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("load world: %w", err)
+	}
+	protagonist, err := rl.loader.LoadProtagonist()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("load protagonist: %w", err)
+	}
+	recentEvents, err := rl.loader.LoadRecentEvents(5)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("load recent events: %w", err)
+	}
+	return world, protagonist, recentEvents, nil
 }
 
 // POV returns the project's point of view setting.
@@ -73,20 +100,20 @@ func (rl *RunLoop) tense() string {
 	return proj.Story.Tense
 }
 
+// language returns the project's novel language ("zh" by default).
+func (rl *RunLoop) language() string {
+	proj, err := rl.loader.LoadProject()
+	if err != nil || proj.Story.Language == "" {
+		return "zh"
+	}
+	return proj.Story.Language
+}
+
 // Step1_DirectorProposal runs the Director Agent and returns proposed events.
 func (rl *RunLoop) Step1_DirectorProposal(ctx context.Context) (*models.Event, *DirectorOutput, error) {
-	// Load all state
-	world, err := rl.loader.LoadWorld()
+	world, protagonist, recentEvents, err := rl.loadStoryState()
 	if err != nil {
-		return nil, nil, fmt.Errorf("load world: %w", err)
-	}
-	protagonist, err := rl.loader.LoadProtagonist()
-	if err != nil {
-		return nil, nil, fmt.Errorf("load protagonist: %w", err)
-	}
-	recentEvents, err := rl.loader.LoadRecentEvents(5)
-	if err != nil {
-		return nil, nil, fmt.Errorf("load recent events: %w", err)
+		return nil, nil, err
 	}
 
 	nextChapter, err := rl.loader.NextChapterNum()
@@ -107,6 +134,51 @@ func (rl *RunLoop) Step1_DirectorProposal(ctx context.Context) (*models.Event, *
 	}
 
 	return rl.director.ProposeEvent(ctx, state)
+}
+
+// Step1_Verified runs the Director proposal, then has the Protagonist verify
+// it. On rejection the Director revises the event, up to `rounds` revisions,
+// after which the latest version is accepted anyway (Forced=true).
+func (rl *RunLoop) Step1_Verified(ctx context.Context, rounds int) (*models.Event, *DirectorOutput, VerifyTrace, error) {
+	event, analysis, err := rl.Step1_DirectorProposal(ctx)
+	if err != nil {
+		return nil, nil, VerifyTrace{}, err
+	}
+
+	trace := VerifyTrace{}
+	for i := 0; i <= rounds; i++ {
+		world, protagonist, recentEvents, err := rl.loadStoryState()
+		if err != nil {
+			return nil, nil, trace, err
+		}
+		verdict, err := rl.protagonist.VerifyEvent(ctx, VerifyEventInput{
+			Character:    protagonist,
+			Facts:        world.Facts,
+			Threads:      world.UnresolvedThreads(),
+			RecentEvents: recentEvents,
+			Event:        event,
+		})
+		if err != nil {
+			return nil, nil, trace, fmt.Errorf("verify event: %w", err)
+		}
+		if verdict.Approved {
+			trace.Revisions = i
+			return event, analysis, trace, nil
+		}
+		if i == rounds {
+			trace.Revisions = rounds
+			trace.Forced = true
+			trace.Issues = verdict.Issues
+			return event, analysis, trace, nil
+		}
+		trace.Issues = verdict.Issues
+		event, err = rl.director.ReviseEvent(ctx, event, verdict)
+		if err != nil {
+			return nil, nil, trace, fmt.Errorf("revise event: %w", err)
+		}
+	}
+	// Unreachable, but keep the compiler happy.
+	return event, analysis, trace, nil
 }
 
 // Step2_ProtagonistResponse runs the Protagonist Agent on an event.
@@ -137,9 +209,52 @@ func (rl *RunLoop) Step2_ProtagonistResponse(ctx context.Context, event *models.
 	return rl.protagonist.ProcessEvent(ctx, state)
 }
 
+// Step2_Verified runs the Protagonist response, then has the Director verify
+// it. On rejection the Protagonist revises the reaction, up to `rounds`
+// revisions, after which the latest version is accepted anyway (Forced=true).
+func (rl *RunLoop) Step2_Verified(ctx context.Context, event *models.Event, rounds int) (*models.ProtagonistReaction, VerifyTrace, error) {
+	reaction, err := rl.Step2_ProtagonistResponse(ctx, event)
+	if err != nil {
+		return nil, VerifyTrace{}, err
+	}
+
+	trace := VerifyTrace{}
+	for i := 0; i <= rounds; i++ {
+		world, protagonist, _, err := rl.loadStoryState()
+		if err != nil {
+			return nil, trace, err
+		}
+		verdict, err := rl.director.VerifyReaction(ctx, VerifyReactionInput{
+			Event:     event,
+			Character: protagonist,
+			Facts:     world.Facts,
+			Reaction:  reaction,
+		})
+		if err != nil {
+			return nil, trace, fmt.Errorf("verify reaction: %w", err)
+		}
+		if verdict.Approved {
+			trace.Revisions = i
+			return reaction, trace, nil
+		}
+		if i == rounds {
+			trace.Revisions = rounds
+			trace.Forced = true
+			trace.Issues = verdict.Issues
+			return reaction, trace, nil
+		}
+		trace.Issues = verdict.Issues
+		reaction, err = rl.protagonist.ReviseReaction(ctx, event, reaction, verdict)
+		if err != nil {
+			return nil, trace, fmt.Errorf("revise reaction: %w", err)
+		}
+	}
+	return reaction, trace, nil
+}
+
 // Step3_GenerateChapter generates the chapter prose.
-func (rl *RunLoop) Step3_GenerateChapter(ctx context.Context, event *models.Event, reaction *models.ProtagonistReaction) (string, error) {
-	input := ChapterInputFromEvent(event, reaction, rl.pov(), rl.tense(), "")
+func (rl *RunLoop) Step3_GenerateChapter(ctx context.Context, event *models.Event, reaction *models.ProtagonistReaction, prevSummary string) (string, error) {
+	input := ChapterInputFromEvent(event, reaction, rl.pov(), rl.tense(), prevSummary)
 
 	// Add chapter number header if not present
 	chapter, err := rl.chapter.Generate(ctx, input)
@@ -149,7 +264,11 @@ func (rl *RunLoop) Step3_GenerateChapter(ctx context.Context, event *models.Even
 
 	// Ensure chapter has a title
 	if !strings.HasPrefix(chapter, "#") {
-		chapter = fmt.Sprintf("# Chapter %d: %s\n\n%s", event.ChapterNum, event.Title, chapter)
+		if rl.language() == "zh" {
+			chapter = fmt.Sprintf("# 第%d章：%s\n\n%s", event.ChapterNum, event.Title, chapter)
+		} else {
+			chapter = fmt.Sprintf("# Chapter %d: %s\n\n%s", event.ChapterNum, event.Title, chapter)
+		}
 	}
 
 	return chapter, nil
@@ -236,7 +355,83 @@ func (rl *RunLoop) markResolvedHooks(world *models.WorldState, resolvedIDs []str
 	}
 }
 
-// RunFull executes the complete cycle and saves everything.
+// NovelConfig configures a full-novel production run.
+type NovelConfig struct {
+	Chapters     int                               // number of chapters to generate
+	VerifyRounds int                               // max revision rounds per verification
+	Progress     func(ch ChapterResult, total int) // called after each chapter
+}
+
+// RunNovel produces a complete novel: one verified event + reaction + chapter
+// per iteration, saving everything to the project directory.
+func (rl *RunLoop) RunNovel(ctx context.Context, cfg NovelConfig) (*NovelResult, error) {
+	chapters := cfg.Chapters
+	if chapters <= 0 {
+		chapters = 10
+	}
+	rounds := cfg.VerifyRounds
+	if rounds < 0 {
+		rounds = 0
+	}
+
+	result := &NovelResult{}
+	var prevSummary string
+
+	for ch := 1; ch <= chapters; ch++ {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+
+		event, _, eventTrace, err := rl.Step1_Verified(ctx, rounds)
+		if err != nil {
+			return result, fmt.Errorf("chapter %d director: %w", ch, err)
+		}
+
+		reaction, reactionTrace, err := rl.Step2_Verified(ctx, event, rounds)
+		if err != nil {
+			return result, fmt.Errorf("chapter %d protagonist: %w", ch, err)
+		}
+
+		chapterText, err := rl.Step3_GenerateChapter(ctx, event, reaction, prevSummary)
+		if err != nil {
+			return result, fmt.Errorf("chapter %d prose: %w", ch, err)
+		}
+
+		if err := rl.SaveAll(event, reaction, chapterText); err != nil {
+			return result, fmt.Errorf("chapter %d save: %w", ch, err)
+		}
+
+		prevSummary = truncateSummary(chapterText, 600)
+
+		cr := ChapterResult{
+			RunResult: RunResult{
+				Event:    event,
+				Reaction: reaction,
+				Chapter:  chapterText,
+			},
+			EventTrace:    eventTrace,
+			ReactionTrace: reactionTrace,
+		}
+		result.Chapters = append(result.Chapters, cr)
+		if cfg.Progress != nil {
+			cfg.Progress(cr, chapters)
+		}
+	}
+
+	return result, nil
+}
+
+// truncateSummary returns the first maxRunes runes of text (for continuity
+// context in the next chapter's prompt).
+func truncateSummary(text string, maxRunes int) string {
+	runes := []rune(text)
+	if len(runes) <= maxRunes {
+		return text
+	}
+	return string(runes[:maxRunes]) + "…"
+}
+
+// RunFull executes one legacy interactive cycle and saves everything.
 func (rl *RunLoop) RunFull(ctx context.Context) (*RunResult, error) {
 	// Step 1: Director
 	fmt.Println("\n🎬 Director is analyzing the story...")
@@ -254,7 +449,7 @@ func (rl *RunLoop) RunFull(ctx context.Context) (*RunResult, error) {
 
 	// Step 3: Chapter
 	fmt.Println("📝 Generating chapter prose...")
-	chapter, err := rl.Step3_GenerateChapter(ctx, event, reaction)
+	chapter, err := rl.Step3_GenerateChapter(ctx, event, reaction, "")
 	if err != nil {
 		return nil, fmt.Errorf("chapter step: %w", err)
 	}

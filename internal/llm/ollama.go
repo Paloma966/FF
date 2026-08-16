@@ -31,11 +31,11 @@ func NewOllama(baseURL, model string) *OllamaLLM {
 }
 
 type ollamaRequest struct {
-	Model    string `json:"model"`
-	Prompt   string `json:"prompt"`
-	System   string `json:"system"`
-	Stream   bool   `json:"stream"`
-	Options  map[string]interface{} `json:"options,omitempty"`
+	Model   string                 `json:"model"`
+	Prompt  string                 `json:"prompt"`
+	System  string                 `json:"system"`
+	Stream  bool                   `json:"stream"`
+	Options map[string]interface{} `json:"options,omitempty"`
 }
 
 type ollamaResponse struct {

@@ -23,21 +23,21 @@ func NewChapterGenerator(llmClient llm.LLMClient) *ChapterGenerator {
 
 // ChapterInput is the assembled input for chapter generation.
 type ChapterInput struct {
-	ChapterNum       int
-	Time             string
-	Tone             string
-	POV              string
-	Tense            string
-	PreviousSummary  string
-	Description      string
-	DirectorIntent   string
-	FactsChanged     []models.FactChange
-	ResolvedHooks    []string
+	ChapterNum        int
+	Time              string
+	Tone              string
+	POV               string
+	Tense             string
+	PreviousSummary   string
+	Description       string
+	DirectorIntent    string
+	FactsChanged      []models.FactChange
+	ResolvedHooks     []string
 	EmotionalResponse string
 	InternalMonologue string
-	Decision         string
-	NewBeliefs       []string
-	ModifiedBeliefs  []string
+	Decision          string
+	NewBeliefs        []string
+	ModifiedBeliefs   []string
 }
 
 // Generate writes chapter prose from the assembled state.
@@ -79,16 +79,16 @@ func ChapterInputFromEvent(
 	prevSummary string,
 ) ChapterInput {
 	input := ChapterInput{
-		ChapterNum:        event.ChapterNum,
-		Time:              event.Time,
-		Tone:              event.Tone,
-		POV:               pov,
-		Tense:             tense,
-		PreviousSummary:   prevSummary,
-		Description:       event.Description,
-		DirectorIntent:    event.DirectorIntent,
-		FactsChanged:      event.FactsChanged,
-		ResolvedHooks:     event.ResolvesHooks,
+		ChapterNum:      event.ChapterNum,
+		Time:            event.Time,
+		Tone:            event.Tone,
+		POV:             pov,
+		Tense:           tense,
+		PreviousSummary: prevSummary,
+		Description:     event.Description,
+		DirectorIntent:  event.DirectorIntent,
+		FactsChanged:    event.FactsChanged,
+		ResolvedHooks:   event.ResolvesHooks,
 	}
 
 	if reaction != nil {

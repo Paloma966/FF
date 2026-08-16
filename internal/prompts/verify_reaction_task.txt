@@ -1,0 +1,45 @@
+THE EVENT THAT JUST HAPPENED
+=============================
+Title: {{.Event.Title}}
+Narrative Time: {{.Event.Time}}
+Tone: {{.Event.Tone}}
+Description:
+{{.Event.Description}}
+
+{{if .Event.FactsChanged}}World Facts That Changed:
+{{range .Event.FactsChanged}}  Before: {{.Before}}
+  After:  {{.After}}
+{{end}}
+{{end}}
+
+CHARACTER STATE (before the event)
+==================================
+Name: {{.Character.Name}}
+Beliefs:
+{{range .Character.Beliefs}}  - {{.}}
+{{end}}
+Goals:
+{{range .Character.Goals}}  - {{.}}
+{{end}}
+Fears:
+{{range .Character.Fears}}  - {{.}}
+{{end}}
+Values:
+{{range .Character.Values}}  - {{.}}
+{{end}}
+
+WORLD FACTS
+===========
+{{range .Facts}}  - {{.}}
+{{end}}
+{{if not .Facts}}  (暂无已确立的事实)
+{{end}}
+
+THE PROTAGONIST'S REACTION (YAML)
+=================================
+{{.ReactionYAML}}
+
+TASK
+====
+Verify the reaction against the criteria in your system instructions.
+Output ONLY the verdict YAML: approved, issues, suggestions.

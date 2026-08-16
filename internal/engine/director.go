@@ -55,11 +55,11 @@ type ThreadVerdict struct {
 
 // EventCandidate is a brief event idea proposed by the Director.
 type EventCandidate struct {
-	Title          string   `yaml:"title"`
-	Description    string   `yaml:"description"`
-	ThreadsUsed    []string `yaml:"threads_used"`
-	BeliefsTested  []string `yaml:"beliefs_tested"`
-	TensionEstimate int     `yaml:"tension_estimate"`
+	Title           string   `yaml:"title"`
+	Description     string   `yaml:"description"`
+	ThreadsUsed     []string `yaml:"threads_used"`
+	BeliefsTested   []string `yaml:"beliefs_tested"`
+	TensionEstimate int      `yaml:"tension_estimate"`
 }
 
 // Evaluation contains the Director's scoring and selection.
@@ -87,18 +87,18 @@ func (cs CandidateScore) TotalScore() int {
 // RawEvent is the event as parsed from the Director's YAML output.
 // It mirrors models.Event but all fields are strings/simple types from YAML parsing.
 type RawEvent struct {
-	Title          string              `yaml:"title"`
-	Time           string              `yaml:"time"`
-	Participants   []string            `yaml:"participants"`
-	Description    string              `yaml:"description"`
-	FactsChanged   []models.FactChange  `yaml:"facts_changed"`
+	Title          string                `yaml:"title"`
+	Time           string                `yaml:"time"`
+	Participants   []string              `yaml:"participants"`
+	Description    string                `yaml:"description"`
+	FactsChanged   []models.FactChange   `yaml:"facts_changed"`
 	BeliefChanges  []models.BeliefChange `yaml:"belief_changes"`
-	FutureHooks    []RawFutureHook      `yaml:"future_hooks"`
-	CausedBy       []models.EventRef    `yaml:"caused_by"`
-	ResolvesHooks  []string             `yaml:"resolves_hooks"`
-	DirectorIntent string              `yaml:"director_intent"`
-	TensionLevel   int                 `yaml:"tension_level"`
-	Tone           string              `yaml:"tone"`
+	FutureHooks    []RawFutureHook       `yaml:"future_hooks"`
+	CausedBy       []models.EventRef     `yaml:"caused_by"`
+	ResolvesHooks  []string              `yaml:"resolves_hooks"`
+	DirectorIntent string                `yaml:"director_intent"`
+	TensionLevel   int                   `yaml:"tension_level"`
+	Tone           string                `yaml:"tone"`
 }
 
 // RawFutureHook is a FutureHook as parsed from YAML (without derived fields).

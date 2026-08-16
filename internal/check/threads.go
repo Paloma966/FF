@@ -38,7 +38,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 					Severity: SeverityWarning,
 					Category: "threads",
 					Message: fmt.Sprintf(
-						"Event %s resolves hook '%s' but this hook is not registered in world threads",
+						"事件 %s 声称解决钩子 '%s'，但该钩子未注册在世界线程中",
 						evt.ID, resolvedID,
 					),
 					RelevantEvents: []string{evt.ID},
@@ -54,7 +54,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 							Severity: SeverityWarning,
 							Category: "threads",
 							Message: fmt.Sprintf(
-								"Event %s resolves hook '%s' but the hook was planted in %s (same or later chapter)",
+								"事件 %s 解决钩子 '%s'，但该钩子是在 %s 中种下的（同章或更晚）",
 								evt.ID, resolvedID, t.PlantedIn,
 							),
 							RelevantEvents: []string{evt.ID, t.PlantedIn},
@@ -77,7 +77,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 					Severity: SeverityWarning,
 					Category: "threads",
 					Message: fmt.Sprintf(
-						"Hook '%s' marked as 'immediate' urgency but unresolved after %d events",
+						"标记为 'immediate' 的钩子 '%s' 在 %d 个事件后仍未解决",
 						hook.ID, eventsSince,
 					),
 					RelevantEvents: []string{hook.PlantedIn},
@@ -87,7 +87,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 					Severity: SeverityInfo,
 					Category: "threads",
 					Message: fmt.Sprintf(
-						"Hook '%s' marked as 'immediate' — %d events since planting, consider paying it off soon",
+						"标记为 'immediate' 的钩子 '%s' —— 种下后已过 %d 个事件，建议尽快兑现",
 						hook.ID, eventsSince,
 					),
 					RelevantEvents: []string{hook.PlantedIn},
@@ -103,7 +103,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 					Severity: SeverityWarning,
 					Category: "threads",
 					Message: fmt.Sprintf(
-						"Hook '%s' was planted %d events ago and has never been referenced since",
+						"钩子 '%s' 种下已过 %d 个事件，此后从未被提及",
 						hook.ID, eventsSince,
 					),
 					RelevantEvents: []string{hook.PlantedIn},
@@ -117,7 +117,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 				Severity: SeverityInfo,
 				Category: "threads",
 				Message: fmt.Sprintf(
-					"Hook '%s' is dormant and was planted %d events ago — consider resolving or dropping",
+					"钩子 '%s' 处于 dormant 且已种下 %d 个事件 —— 考虑解决或放弃",
 					hook.ID, eventsSince,
 				),
 				RelevantEvents: []string{hook.PlantedIn},
@@ -134,7 +134,7 @@ func CheckThreads(world *models.WorldState, events []models.Event) []Issue {
 					Severity: SeverityError,
 					Category: "threads",
 					Message: fmt.Sprintf(
-						"Duplicate hook ID '%s' — planted in both %s and %s",
+						"重复的钩子 ID '%s' —— 在 %s 与 %s 中都被种下",
 						h.ID, prevEvent, evt.ID,
 					),
 					RelevantEvents: []string{prevEvent, evt.ID},

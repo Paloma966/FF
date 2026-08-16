@@ -11,25 +11,25 @@ import (
 
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Run consistency checks on the story world",
-	Long: `Verify the internal consistency of the story world across three dimensions:
+	Short: "对故事世界运行一致性检查",
+	Long: `从三个维度校验故事世界的内部一致性：
 
-  Character Drift:
-    Detects unmotivated belief reversals, personalities drifting without
-    cause, and conflicts between active and abandoned beliefs.
+  角色漂移:
+    检测无动机的信念反转、无原因的性格漂移，
+    以及活跃信念与已抛弃信念之间的冲突。
 
-  Timeline:
-    Checks event ordering by chapter, detects temporal contradictions,
-    and flags events where the protagonist is absent without explanation.
+  时间线:
+    按章节检查事件顺序，发现时间矛盾，
+    并标记主角缺席且无解释的事件。
 
-  Forgotten Threads:
-    Identifies unresolved plot hooks that have been stalled, hooks with
-    "immediate" urgency that remain unaddressed, and duplicated hook IDs.
+  被遗忘的伏笔:
+    识别被搁置的未解决钩子、标记为 "immediate" 却迟迟未兑现的钩子，
+    以及重复的钩子 ID。
 
-Issues are reported with severity levels:
-  ❌ ERROR   — Must fix (breaks continuity)
-  ⚠️  WARNING — Should review (potential problem)
-  ℹ️  INFO    — For awareness (consider addressing)`,
+问题按严重程度分级报告：
+  ❌ ERROR   — 必须修复（破坏连续性）
+  ⚠️  WARNING — 应当复查（潜在问题）
+  ℹ️  INFO    — 仅供参考（酌情处理）`,
 	RunE: runCheck,
 }
 

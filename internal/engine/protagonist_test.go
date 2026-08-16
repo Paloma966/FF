@@ -93,10 +93,10 @@ func TestProtagonistAgent_ProcessEvent(t *testing.T) {
 		Fears:   []string{"becoming like my father"},
 		Values:  []string{"truth-seeking", "trust in family"},
 		Event: ProcessedEvent{
-			Title:    "The Hidden Letter",
-			Time:     "Day 1, Late Afternoon",
-			Tone:     "mysterious",
-			Description: "Lin En finds a hidden letter from his father...",
+			Title:          "The Hidden Letter",
+			Time:           "Day 1, Late Afternoon",
+			Tone:           "mysterious",
+			Description:    "Lin En finds a hidden letter from his father...",
 			DirectorIntent: "Launch the central mystery",
 		},
 	}
@@ -125,9 +125,9 @@ func TestApplyReaction(t *testing.T) {
 	}
 
 	reaction := &models.ProtagonistReaction{
-		NewBeliefs:       []string{"my father was not who he claimed to be"},
-		ModifiedBeliefs:  []string{"the world is simple -> the world is layered with secrets"},
-		AbandonedBeliefs: []string{"my father's disappearance was an accident"},
+		NewBeliefs:         []string{"my father was not who he claimed to be"},
+		ModifiedBeliefs:    []string{"the world is simple -> the world is layered with secrets"},
+		AbandonedBeliefs:   []string{"my father's disappearance was an accident"},
 		StrengthenedValues: []string{"truth-seeking"},
 		ChallengedValues:   []string{"trust in family"},
 		MemoryFormed:       "The dust in the attic light. The envelope.",
@@ -190,8 +190,8 @@ func TestEstimateIntensity(t *testing.T) {
 		{
 			name: "with challenged values and abandoned beliefs",
 			reaction: &models.ProtagonistReaction{
-				AbandonedBeliefs:  []string{"old belief"},
-				ChallengedValues:  []string{"loyalty"},
+				AbandonedBeliefs:   []string{"old belief"},
+				ChallengedValues:   []string{"loyalty"},
 				StrengthenedValues: []string{"truth"},
 			},
 			min: 8,

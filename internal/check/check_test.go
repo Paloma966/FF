@@ -72,7 +72,7 @@ func TestCheckThreads_DuplicateHooks(t *testing.T) {
 
 	foundDupe := false
 	for _, issue := range issues {
-		if issue.Category == "threads" && containsStr(issue.Message, "Duplicate hook ID") {
+		if issue.Category == "threads" && containsStr(issue.Message, "重复的钩子 ID") {
 			foundDupe = true
 			if issue.Severity != SeverityError {
 				t.Errorf("expected ERROR for duplicate hook, got %s", issue.Severity)
@@ -99,7 +99,7 @@ func TestCheckCharacterDrift_BeliefReversal(t *testing.T) {
 
 	foundReversal := false
 	for _, issue := range issues {
-		if issue.Category == "drift" && containsStr(issue.Message, "both active") {
+		if issue.Category == "drift" && containsStr(issue.Message, "同时存在于活跃信念") {
 			foundReversal = true
 		}
 	}
@@ -131,7 +131,7 @@ func TestCheckTimeline_ChapterGap(t *testing.T) {
 
 	foundGap := false
 	for _, issue := range issues {
-		if issue.Category == "timeline" && containsStr(issue.Message, "Chapter gap") {
+		if issue.Category == "timeline" && containsStr(issue.Message, "章节断层") {
 			foundGap = true
 		}
 	}

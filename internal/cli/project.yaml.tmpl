@@ -1,6 +1,5 @@
-project:
-  name: "{{.Name}}"
-  created_at: "{{.CreatedAt}}"
+name: "{{.Name}}"
+created_at: "{{.CreatedAt}}"
 
 story:
   title: "{{.StoryTitle}}"
@@ -8,13 +7,26 @@ story:
   premise: "{{.Premise}}"
   pov: "{{.POV}}"
   tense: "{{.Tense}}"
+  language: "{{.Language}}"
 
 protagonist:
   name: "{{.ProtagonistName}}"
-  initial_beliefs: []
-  initial_goals: []
-  initial_fears: []
-  initial_values: []
+  initial_beliefs:
+{{- range .InitialBeliefs }}
+    - "{{.}}"
+{{- end }}
+  initial_goals:
+{{- range .InitialGoals }}
+    - "{{.}}"
+{{- end }}
+  initial_fears:
+{{- range .InitialFears }}
+    - "{{.}}"
+{{- end }}
+  initial_values:
+{{- range .InitialValues }}
+    - "{{.}}"
+{{- end }}
 
 llm:
   provider: "{{.LLMProvider}}"

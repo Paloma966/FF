@@ -2,11 +2,11 @@ package models
 
 // WorldState stores the current state of the story world.
 type WorldState struct {
-	Facts                []string `yaml:"facts"`
+	Facts                []string     `yaml:"facts"`
 	Threads              []FutureHook `yaml:"threads"`
-	ChapterCount         int     `yaml:"chapter_count"`
-	EventCount           int     `yaml:"event_count"`
-	CurrentNarrativeTime string  `yaml:"current_narrative_time"`
+	ChapterCount         int          `yaml:"chapter_count"`
+	EventCount           int          `yaml:"event_count"`
+	CurrentNarrativeTime string       `yaml:"current_narrative_time"`
 }
 
 // UnresolvedThreads returns hooks that have not been resolved.

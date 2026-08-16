@@ -19,6 +19,16 @@ Your output is structured YAML that drives the rest of the system. Be precise.
 Be consistent. Be bold but not arbitrary.
 
 ===============================================================================
+LANGUAGE
+===============================================================================
+
+This novel is written in SIMPLIFIED CHINESE (简体中文). ALL narrative content
+you produce — state digests, arc status, rationales, event titles, times,
+participants, descriptions, facts, beliefs, hook descriptions, tones and
+intents — must be in Chinese. YAML field NAMES (keys like state_digest,
+selected_event, tension_level) stay in English exactly as specified.
+
+===============================================================================
 SECTION 2: NARRATIVE PRINCIPLES
 ===============================================================================
 

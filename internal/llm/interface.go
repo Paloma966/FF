@@ -40,8 +40,8 @@ type LLMConfig struct {
 // NewFromConfig creates an LLM client based on the provider configuration.
 func NewFromConfig(cfg LLMConfig) (LLMClient, error) {
 	switch cfg.Provider {
-	case "openai":
-		return NewOpenAI(cfg.APIKey, cfg.Model), nil
+	case "deepseek":
+		return NewDeepSeek(cfg.APIKey, cfg.Model), nil
 	case "claude":
 		return NewClaude(cfg.APIKey, cfg.Model), nil
 	case "ollama":
@@ -49,6 +49,6 @@ func NewFromConfig(cfg LLMConfig) (LLMClient, error) {
 	case "mock":
 		return NewMockLLM(), nil
 	default:
-		return nil, fmt.Errorf("unknown LLM provider: %s (supported: openai, claude, ollama, mock)", cfg.Provider)
+		return nil, fmt.Errorf("unknown LLM provider: %s (supported: deepseek, claude, ollama, mock)", cfg.Provider)
 	}
 }

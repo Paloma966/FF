@@ -38,7 +38,7 @@ func CheckTimeline(protagonistName string, events []models.Event) []Issue {
 				Severity: SeverityWarning,
 				Category: "timeline",
 				Message: fmt.Sprintf(
-					"Chapter gap: chapter %d → chapter %d (no events in chapter %d)",
+					"章节断层：第 %d 章 → 第 %d 章（第 %d 章没有事件）",
 					prev.ChapterNum, curr.ChapterNum, prev.ChapterNum+1,
 				),
 				RelevantEvents: []string{prev.ID, curr.ID},
@@ -51,7 +51,7 @@ func CheckTimeline(protagonistName string, events []models.Event) []Issue {
 				Severity: SeverityError,
 				Category: "timeline",
 				Message: fmt.Sprintf(
-					"Chapter order violation: event %s (ch%d) appears after event %s (ch%d)",
+					"章节顺序违规：事件 %s（第%d章）出现在事件 %s（第%d章）之后",
 					curr.ID, curr.ChapterNum, prev.ID, prev.ChapterNum,
 				),
 				RelevantEvents: []string{prev.ID, curr.ID},
@@ -78,7 +78,7 @@ func CheckTimeline(protagonistName string, events []models.Event) []Issue {
 				Severity: SeverityInfo,
 				Category: "timeline",
 				Message: fmt.Sprintf(
-					"Events %s and %s share the same narrative time '%s'",
+					"事件 %s 与 %s 使用了相同的叙事时间 '%s'",
 					prevEvent, t.event, t.time,
 				),
 				RelevantEvents: []string{prevEvent, t.event},
@@ -101,7 +101,7 @@ func CheckTimeline(protagonistName string, events []models.Event) []Issue {
 				Severity: SeverityInfo,
 				Category: "timeline",
 				Message: fmt.Sprintf(
-					"Event %s (%s) does not include protagonist '%s' in participants",
+					"事件 %s（%s）的参与者中没有主角 '%s'",
 					e.ID, e.Title, protagonistName,
 				),
 				RelevantEvents: []string{e.ID},

@@ -1,0 +1,20 @@
+你的上一版事件提案未通过主角方的校验。以下是校验意见：
+
+ISSUES
+======
+{{range .Issues}}  - {{.}}
+{{end}}
+
+SUGGESTIONS
+===========
+{{.Suggestions}}
+
+YOUR ORIGINAL EVENT (YAML)
+==========================
+{{.EventYAML}}
+
+TASK
+====
+根据校验意见修订事件。保持所有字段完整，只修改有问题的部分。
+重新输出完整的事件 YAML（以 selected_event: 开头，字段名保持英文，
+所有内容使用简体中文）。不要输出其他内容。

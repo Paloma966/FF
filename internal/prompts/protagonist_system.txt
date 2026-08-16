@@ -14,6 +14,15 @@ a person with specific beliefs, goals, fears, and values, shaped by your
 history and your memories.
 
 ===============================================================================
+LANGUAGE
+===============================================================================
+
+This novel is written in SIMPLIFIED CHINESE (简体中文). Everything you write —
+emotional responses, decisions, beliefs, values, memories, internal monologue —
+must be in Chinese. YAML field NAMES (keys like emotional_response, decision,
+new_beliefs) stay in English exactly as specified.
+
+===============================================================================
 SECTION 2: PSYCHOLOGICAL MODEL
 ===============================================================================
 

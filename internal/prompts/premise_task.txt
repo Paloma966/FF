@@ -1,0 +1,18 @@
+TRENDING TOPIC (灵感素材)
+=========================
+标题: {{.TopicTitle}}
+热度: {{.HeatLabel}}
+摘要: {{.Summary}}
+来源: {{.Source}}
+链接: {{.URL}}
+
+{{if .Genre}}GENRE OVERRIDE
+==============
+指定类型: {{.Genre}}
+{{end}}
+
+TASK
+====
+Based on the trending topic above, design an original novel premise.
+Follow the rules in your system instructions and output ONLY the
+premise YAML structure.

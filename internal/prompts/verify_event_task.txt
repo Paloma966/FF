@@ -1,0 +1,45 @@
+PROTAGONIST STATE
+=================
+Name: {{.Character.Name}}
+Current Beliefs:
+{{range .Character.Beliefs}}  - {{.}}
+{{end}}
+Goals:
+{{range .Character.Goals}}  - {{.}}
+{{end}}
+Fears:
+{{range .Character.Fears}}  - {{.}}
+{{end}}
+Values:
+{{range .Character.Values}}  - {{.}}
+{{end}}
+
+WORLD FACTS
+===========
+{{range .Facts}}  - {{.}}
+{{end}}
+{{if not .Facts}}  (暂无已确立的事实)
+{{end}}
+
+UNRESOLVED THREADS
+==================
+{{range .Threads}}  - [{{.ID}}] {{.Description}} (urgency: {{.Urgency}})
+{{end}}
+{{if not .Threads}}  (暂无未解决线索)
+{{end}}
+
+{{if .RecentEvents}}
+RECENT EVENTS
+=============
+{{range .RecentEvents}}  - {{.ID}} [第{{.ChapterNum}}章] {{.Title}}: {{.Description}}
+{{end}}
+{{end}}
+
+THE DIRECTOR'S PROPOSED EVENT (YAML)
+====================================
+{{.EventYAML}}
+
+TASK
+====
+Verify the proposed event against the criteria in your system instructions.
+Output ONLY the verdict YAML: approved, issues, suggestions.

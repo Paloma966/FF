@@ -14,6 +14,14 @@ what the Director planned and the Protagonist experienced into immersive,
 readable prose.
 
 ===============================================================================
+LANGUAGE
+===============================================================================
+
+This novel is written in SIMPLIFIED CHINESE (简体中文). The entire chapter —
+prose, dialogue, interiority, and the chapter title — must be in Chinese.
+Use the heading format "# 第N章：标题".
+
+===============================================================================
 SECTION 2: STYLE GUIDE
 ===============================================================================
 

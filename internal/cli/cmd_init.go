@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
@@ -20,6 +21,7 @@ var (
 	initGenre       string
 	initPremise     string
 	initPOV         string
+	initLanguage    string
 	initProtagonist string
 	initProvider    string
 	initModel       string
@@ -51,12 +53,14 @@ func init() {
 	initCmd.Flags().StringVar(&initGenre, "genre", "", "Story genre (e.g., fantasy, sci-fi)")
 	initCmd.Flags().StringVar(&initPremise, "premise", "", "Story premise / one-line summary")
 	initCmd.Flags().StringVar(&initPOV, "pov", "third_person_limited", "Point of view: first_person | third_person_limited")
+	initCmd.Flags().StringVar(&initLanguage, "language", "zh", "Novel language: zh | en")
 	initCmd.Flags().StringVar(&initProtagonist, "protagonist", "Protagonist", "Protagonist name")
-	initCmd.Flags().StringVar(&initProvider, "provider", "openai", "LLM provider: openai | claude | ollama")
-	initCmd.Flags().StringVar(&initModel, "model", "gpt-4o", "LLM model name")
+	initCmd.Flags().StringVar(&initProvider, "provider", "deepseek", "LLM provider: deepseek | claude | ollama")
+	initCmd.Flags().StringVar(&initModel, "model", "deepseek-chat", "LLM model name")
 	initCmd.Flags().StringVar(&initAPIKey, "api-key", "", "LLM API key (or set env var)")
 }
 
+// templateData holds all values needed to scaffold a project.
 type templateData struct {
 	Name            string
 	CreatedAt       string
@@ -65,7 +69,12 @@ type templateData struct {
 	Premise         string
 	POV             string
 	Tense           string
+	Language        string
 	ProtagonistName string
+	InitialBeliefs  []string
+	InitialGoals    []string
+	InitialFears    []string
+	InitialValues   []string
 	LLMProvider     string
 	LLMModel        string
 	LLMAPIKey       string
@@ -97,6 +106,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		Premise:         initPremise,
 		POV:             initPOV,
 		Tense:           "past",
+		Language:        initLanguage,
 		ProtagonistName: initProtagonist,
 		LLMProvider:     initProvider,
 		LLMModel:        initModel,
@@ -119,7 +129,35 @@ func runInit(cmd *cobra.Command, args []string) error {
 		data.LLMAPIKey = resolveAPIKey(data.LLMProvider)
 	}
 
-	// Create project directory
+	if err := scaffoldProject(projectPath, data); err != nil {
+		return err
+	}
+
+	fmt.Printf("✨ Project '%s' created at %s\n", projectName, projectPath)
+	fmt.Println()
+	fmt.Println("Project structure:")
+	fmt.Println("  ├── project.yaml")
+	fmt.Println("  ├── world.yaml")
+	fmt.Println("  ├── characters/protagonist.yaml")
+	fmt.Println("  ├── timeline/")
+	fmt.Println("  └── generated/")
+	fmt.Println()
+	fmt.Println("Next steps:")
+	fmt.Printf("  cd %s\n", projectName)
+	fmt.Printf("  ff show          # view world state\n")
+	fmt.Printf("  ff run           # generate the first chapter\n")
+
+	return nil
+}
+
+// scaffoldProject creates a complete project directory from templateData.
+// It is shared by `ff init` and by `ff run`'s automatic project bootstrap.
+// The target directory may already exist (e.g. ".") as long as it does not
+// already contain a project.yaml.
+func scaffoldProject(projectPath string, data templateData) error {
+	if _, err := os.Stat(filepath.Join(projectPath, "project.yaml")); err == nil {
+		return fmt.Errorf("project already exists: %s", projectPath)
+	}
 	if err := os.MkdirAll(projectPath, 0755); err != nil {
 		return fmt.Errorf("create project directory: %w", err)
 	}
@@ -130,26 +168,30 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parse template: %w", err)
 	}
 
-	projectYAML := filepath.Join(projectPath, "project.yaml")
-	f, err := os.Create(projectYAML)
+	f, err := os.Create(filepath.Join(projectPath, "project.yaml"))
 	if err != nil {
 		return fmt.Errorf("create project.yaml: %w", err)
 	}
-	defer f.Close()
-
 	if err := tmpl.Execute(f, data); err != nil {
+		f.Close()
 		return fmt.Errorf("render template: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("close project.yaml: %w", err)
 	}
 
 	// Write world.yaml
-	worldYAML := filepath.Join(projectPath, "world.yaml")
+	narrativeTime := "Day 0, Prologue"
+	if data.Language == "zh" {
+		narrativeTime = "第0天，序幕"
+	}
 	worldContent := fmt.Sprintf(`facts: []
 threads: []
 chapter_count: 0
 event_count: 0
-current_narrative_time: "Day 0, Prologue"
-`)
-	if err := os.WriteFile(worldYAML, []byte(worldContent), 0644); err != nil {
+current_narrative_time: "%s"
+`, narrativeTime)
+	if err := os.WriteFile(filepath.Join(projectPath, "world.yaml"), []byte(worldContent), 0644); err != nil {
 		return fmt.Errorf("create world.yaml: %w", err)
 	}
 
@@ -159,46 +201,49 @@ current_narrative_time: "Day 0, Prologue"
 		return fmt.Errorf("create characters dir: %w", err)
 	}
 
-	protagonistYAML := filepath.Join(charsDir, "protagonist.yaml")
 	protContent := fmt.Sprintf(`name: "%s"
-beliefs: []
-goals: []
-fears: []
-values: []
-memories: []
+beliefs:
+%sgoals:
+%sfears:
+%svalues:
+%smemories: []
 abandoned_beliefs: []
-`, data.ProtagonistName)
-	if err := os.WriteFile(protagonistYAML, []byte(protContent), 0644); err != nil {
+`, data.ProtagonistName,
+		renderYAMLList(data.InitialBeliefs, 2),
+		renderYAMLList(data.InitialGoals, 2),
+		renderYAMLList(data.InitialFears, 2),
+		renderYAMLList(data.InitialValues, 2))
+	if err := os.WriteFile(filepath.Join(charsDir, "protagonist.yaml"), []byte(protContent), 0644); err != nil {
 		return fmt.Errorf("create protagonist.yaml: %w", err)
 	}
 
 	// Create timeline directory
-	timelineDir := filepath.Join(projectPath, "timeline")
-	if err := os.MkdirAll(timelineDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "timeline"), 0755); err != nil {
 		return fmt.Errorf("create timeline dir: %w", err)
 	}
 
 	// Create generated directory
-	generatedDir := filepath.Join(projectPath, "generated")
-	if err := os.MkdirAll(generatedDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "generated"), 0755); err != nil {
 		return fmt.Errorf("create generated dir: %w", err)
 	}
 
-	fmt.Printf("✨ Project '%s' created at %s\n", projectName, projectPath)
-	fmt.Println()
-	fmt.Println("Project structure:")
-	fmt.Printf("  ├── project.yaml\n")
-	fmt.Printf("  ├── world.yaml\n")
-	fmt.Printf("  ├── characters/protagonist.yaml\n")
-	fmt.Printf("  ├── timeline/\n")
-	fmt.Printf("  └── generated/\n")
-	fmt.Println()
-	fmt.Println("Next steps:")
-	fmt.Printf("  cd %s\n", projectName)
-	fmt.Printf("  ff show          # view world state\n")
-	fmt.Printf("  ff run           # generate the first chapter\n")
-
 	return nil
+}
+
+// renderYAMLList renders a string slice as an indented YAML block list.
+func renderYAMLList(items []string, indent int) string {
+	if len(items) == 0 {
+		return ""
+	}
+	pad := strings.Repeat(" ", indent)
+	var b strings.Builder
+	for _, it := range items {
+		b.WriteString(pad)
+		b.WriteString("- \"")
+		b.WriteString(it)
+		b.WriteString("\"\n")
+	}
+	return b.String()
 }
 
 func runWizard(data templateData) (templateData, error) {
@@ -242,8 +287,14 @@ func runWizard(data templateData) (templateData, error) {
 		data.POV = scanner.Text()
 	}
 
+	// Language
+	fmt.Printf("Language (zh/en) [%s]: ", data.Language)
+	if scanner.Scan() && scanner.Text() != "" {
+		data.Language = scanner.Text()
+	}
+
 	// LLM provider
-	fmt.Printf("LLM provider (openai/claude/ollama) [%s]: ", data.LLMProvider)
+	fmt.Printf("LLM provider (deepseek/claude/ollama) [%s]: ", data.LLMProvider)
 	if scanner.Scan() && scanner.Text() != "" {
 		data.LLMProvider = scanner.Text()
 	}
@@ -269,9 +320,9 @@ func runWizard(data templateData) (templateData, error) {
 
 func resolveAPIKey(provider string) string {
 	switch provider {
-	case "openai":
-		if k := os.Getenv("OPENAI_API_KEY"); k != "" {
-			return "${OPENAI_API_KEY}"
+	case "deepseek":
+		if k := os.Getenv("DEEPSEEK_API_KEY"); k != "" {
+			return "${DEEPSEEK_API_KEY}"
 		}
 	case "claude":
 		if k := os.Getenv("ANTHROPIC_API_KEY"); k != "" {
@@ -285,14 +336,14 @@ func resolveAPIKey(provider string) string {
 
 func defaultModelFor(provider string) string {
 	switch provider {
-	case "openai":
-		return "gpt-4o"
+	case "deepseek":
+		return "deepseek-chat"
 	case "claude":
 		return "claude-sonnet-4-20250514"
 	case "ollama":
 		return "llama3.1:8b"
 	default:
-		return "gpt-4o"
+		return "deepseek-chat"
 	}
 }
 

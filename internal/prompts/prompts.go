@@ -27,3 +27,35 @@ var ChapterSystem string
 
 //go:embed chapter_task.txt
 var ChapterTaskTemplate string
+
+// Premise prompts
+//
+//go:embed premise_system.txt
+var PremiseSystem string
+
+//go:embed premise_task.txt
+var PremiseTaskTemplate string
+
+// Mutual verification prompts.
+// The Protagonist verifies the Director's event; the Director verifies the
+// Protagonist's reaction.
+
+//go:embed verify_event_system.txt
+var VerifyEventSystem string
+
+//go:embed verify_event_task.txt
+var VerifyEventTaskTemplate string
+
+//go:embed verify_reaction_system.txt
+var VerifyReactionSystem string
+
+//go:embed verify_reaction_task.txt
+var VerifyReactionTaskTemplate string
+
+// Revision prompts (system prompts are reused from the respective agents).
+
+//go:embed revise_event_task.txt
+var ReviseEventTaskTemplate string
+
+//go:embed revise_reaction_task.txt
+var ReviseReactionTaskTemplate string

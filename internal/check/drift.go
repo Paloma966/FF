@@ -69,7 +69,7 @@ func CheckCharacterDrift(char *models.Character, events []models.Event) []Issue 
 					Severity: SeverityWarning,
 					Category: "drift",
 					Message: fmt.Sprintf(
-						"Belief '%s' was abandoned in %s but later reformed without a clear re-establishment event",
+						"信念 '%s' 在 %s 中被抛弃，之后又在没有明确重建事件的情况下重新形成",
 						key, lastAbandonedAt,
 					),
 					RelevantEvents: []string{lastAbandonedAt, s.event},
@@ -88,7 +88,7 @@ func CheckCharacterDrift(char *models.Character, events []models.Event) []Issue 
 					Severity: SeverityError,
 					Category: "drift",
 					Message: fmt.Sprintf(
-						"Belief '%s' is in both active beliefs and abandoned beliefs lists",
+						"信念 '%s' 同时存在于活跃信念与已抛弃信念列表中",
 						current,
 					),
 				})

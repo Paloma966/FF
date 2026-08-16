@@ -83,8 +83,8 @@ func runShow(cmd *cobra.Command, args []string) error {
 	// Project overview
 	fmt.Println()
 	fmt.Printf("📊 PROJECT OVERVIEW\n")
-	fmt.Printf("  Chapters: %d  |  Events: %d  |  POV: %s  |  Tense: %s\n",
-		world.ChapterCount, world.EventCount, proj.Story.POV, proj.Story.Tense)
+	fmt.Printf("  Chapters: %d  |  Events: %d  |  POV: %s  |  Tense: %s  |  Language: %s\n",
+		world.ChapterCount, world.EventCount, proj.Story.POV, proj.Story.Tense, proj.Story.Language)
 	fmt.Printf("  Narrative Time: %s\n", world.CurrentNarrativeTime)
 
 	// World Facts
@@ -330,8 +330,9 @@ func urgencySymbol(urgency string) string {
 }
 
 func wrapSummary(text string, width int) string {
-	if len(text) <= width {
+	runes := []rune(text)
+	if len(runes) <= width {
 		return text
 	}
-	return text[:width-3] + "..."
+	return string(runes[:width-3]) + "..."
 }
