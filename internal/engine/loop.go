@@ -29,17 +29,31 @@ type LoopConfig struct {
 	ProtagonistLLM llm.LLMClient
 	ChapterLLM     llm.LLMClient
 	PremiseLLM     llm.LLMClient
-	POV            string
-	Tense          string
+	Temperature    float64
+	MaxTokens      int
+	Language       string
 }
 
 // NewRunLoop creates a new RunLoop.
 func NewRunLoop(loader *storage.Loader, saver *storage.Saver, cfg LoopConfig) *RunLoop {
+	director := NewDirectorAgent(cfg.DirectorLLM)
+	protagonist := NewProtagonistAgent(cfg.ProtagonistLLM)
+	chapter := NewChapterGenerator(cfg.ChapterLLM)
+	premise := NewPremiseGenerator(cfg.PremiseLLM)
+
+	director.setLLMSettings(cfg.Temperature, cfg.MaxTokens)
+	protagonist.setLLMSettings(cfg.Temperature, cfg.MaxTokens)
+	chapter.setLLMSettings(cfg.Temperature, cfg.MaxTokens)
+
+	director.setLanguage(cfg.Language)
+	protagonist.setLanguage(cfg.Language)
+	chapter.setLanguage(cfg.Language)
+
 	return &RunLoop{
-		director:    NewDirectorAgent(cfg.DirectorLLM),
-		protagonist: NewProtagonistAgent(cfg.ProtagonistLLM),
-		chapter:     NewChapterGenerator(cfg.ChapterLLM),
-		premise:     NewPremiseGenerator(cfg.PremiseLLM),
+		director:    director,
+		protagonist: protagonist,
+		chapter:     chapter,
+		premise:     premise,
 		loader:      loader,
 		saver:       saver,
 	}
@@ -304,13 +318,12 @@ func (rl *RunLoop) SaveAll(event *models.Event, reaction *models.ProtagonistReac
 	}
 
 	// Update and save world state
-	now := time.Now().Format("2006-01-02 15:04")
 	rl.applyFactsToWorld(world, event)
 	world.Threads = append(world.Threads, event.FutureHooks...)
-	rl.markResolvedHooks(world, event.ResolvesHooks)
+	rl.markResolvedHooks(world, event.ResolvesHooks, event.ID)
 	world.ChapterCount = event.ChapterNum
 	world.EventCount++
-	world.CurrentNarrativeTime = fmt.Sprintf("%s (Event: %s, %s)", event.Time, eventID, now)
+	world.CurrentNarrativeTime = event.Time
 
 	if err := rl.saver.SaveWorld(world); err != nil {
 		return fmt.Errorf("save world: %w", err)
@@ -344,12 +357,13 @@ func (rl *RunLoop) applyFactsToWorld(world *models.WorldState, event *models.Eve
 	}
 }
 
-// markResolvedHooks marks hooks as resolved in the world state.
-func (rl *RunLoop) markResolvedHooks(world *models.WorldState, resolvedIDs []string) {
+// markResolvedHooks marks hooks as resolved in the world state, recording the
+// event ID that resolved them.
+func (rl *RunLoop) markResolvedHooks(world *models.WorldState, resolvedIDs []string, resolvedIn string) {
 	for _, id := range resolvedIDs {
 		for i := range world.Threads {
 			if world.Threads[i].ID == id {
-				world.Threads[i].ResolvedIn = "resolved"
+				world.Threads[i].ResolvedIn = resolvedIn
 			}
 		}
 	}

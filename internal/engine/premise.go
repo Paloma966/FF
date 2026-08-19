@@ -38,16 +38,19 @@ func NewPremiseGenerator(llmClient llm.LLMClient) *PremiseGenerator {
 
 // PremiseInput is the trending topic material fed to the generator.
 type PremiseInput struct {
-	TopicTitle string
-	HeatLabel  string
-	Summary    string
-	Source     string
-	URL        string
-	Genre      string // optional override; empty lets the model choose
+	TopicTitle     string
+	HeatLabel      string
+	Summary        string
+	Source         string
+	URL            string
+	Genre          string // optional override; empty lets the model choose
+	Language       string // "zh" | "en"; controls the output-language directive
+	OutputLanguage string // rendered directive; set by Generate
 }
 
 // Generate produces a novel premise from the topic.
 func (p *PremiseGenerator) Generate(ctx context.Context, in PremiseInput) (*Premise, error) {
+	in.OutputLanguage = outputLanguageDirective(in.Language)
 	var buf bytes.Buffer
 	tmpl, err := template.New("premise_task").Parse(prompts.PremiseTaskTemplate)
 	if err != nil {

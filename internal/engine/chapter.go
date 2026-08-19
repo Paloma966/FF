@@ -13,12 +13,32 @@ import (
 
 // ChapterGenerator produces prose from Director + Protagonist outputs.
 type ChapterGenerator struct {
-	llm llm.LLMClient
+	llm         llm.LLMClient
+	temperature float64
+	maxTokens   int
+	language    string
 }
 
 // NewChapterGenerator creates a new ChapterGenerator.
 func NewChapterGenerator(llmClient llm.LLMClient) *ChapterGenerator {
-	return &ChapterGenerator{llm: llmClient}
+	return &ChapterGenerator{llm: llmClient, temperature: 0.8, maxTokens: 4096, language: "zh"}
+}
+
+// setLLMSettings overrides the default temperature/maxTokens when non-zero.
+func (cg *ChapterGenerator) setLLMSettings(temperature float64, maxTokens int) {
+	if temperature > 0 {
+		cg.temperature = temperature
+	}
+	if maxTokens > 0 {
+		cg.maxTokens = maxTokens
+	}
+}
+
+// setLanguage overrides the output language ("zh" or "en").
+func (cg *ChapterGenerator) setLanguage(lang string) {
+	if lang != "" {
+		cg.language = lang
+	}
 }
 
 // ChapterInput is the assembled input for chapter generation.
@@ -38,10 +58,12 @@ type ChapterInput struct {
 	Decision          string
 	NewBeliefs        []string
 	ModifiedBeliefs   []string
+	OutputLanguage    string
 }
 
 // Generate writes chapter prose from the assembled state.
 func (cg *ChapterGenerator) Generate(ctx context.Context, input ChapterInput) (string, error) {
+	input.OutputLanguage = outputLanguageDirective(cg.language)
 	var buf bytes.Buffer
 	tmpl, err := template.New("chapter_task").Parse(prompts.ChapterTaskTemplate)
 	if err != nil {
@@ -54,8 +76,8 @@ func (cg *ChapterGenerator) Generate(ctx context.Context, input ChapterInput) (s
 	resp, err := cg.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.ChapterSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.8,
-		MaxTokens:    4096,
+		Temperature:  cg.temperature,
+		MaxTokens:    cg.maxTokens,
 	})
 	if err != nil {
 		return "", fmt.Errorf("llm call: %w", err)

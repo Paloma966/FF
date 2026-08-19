@@ -15,12 +15,32 @@ import (
 
 // DirectorAgent is responsible for story direction, event design, and pacing.
 type DirectorAgent struct {
-	llm llm.LLMClient
+	llm         llm.LLMClient
+	temperature float64
+	maxTokens   int
+	language    string
 }
 
 // NewDirectorAgent creates a new DirectorAgent with the given LLM client.
 func NewDirectorAgent(llmClient llm.LLMClient) *DirectorAgent {
-	return &DirectorAgent{llm: llmClient}
+	return &DirectorAgent{llm: llmClient, temperature: 0.8, maxTokens: 4096, language: "zh"}
+}
+
+// setLLMSettings overrides the default temperature/maxTokens when non-zero.
+func (d *DirectorAgent) setLLMSettings(temperature float64, maxTokens int) {
+	if temperature > 0 {
+		d.temperature = temperature
+	}
+	if maxTokens > 0 {
+		d.maxTokens = maxTokens
+	}
+}
+
+// setLanguage overrides the output language ("zh" or "en").
+func (d *DirectorAgent) setLanguage(lang string) {
+	if lang != "" {
+		d.language = lang
+	}
 }
 
 // DirectorState is the input state for the Director's analysis.
@@ -33,6 +53,7 @@ type DirectorState struct {
 	RecentEventCount int
 	NextChapterNum   int
 	CurrentTime      string
+	OutputLanguage   string
 }
 
 // DirectorOutput is the structured YAML the Director returns.
@@ -113,6 +134,7 @@ type RawFutureHook struct {
 // the selected event and the full DirectorOutput for logging.
 func (d *DirectorAgent) ProposeEvent(ctx context.Context, state DirectorState) (*models.Event, *DirectorOutput, error) {
 	// 1. Render the task prompt from template
+	state.OutputLanguage = outputLanguageDirective(d.language)
 	var buf bytes.Buffer
 	tmpl, err := template.New("director_task").Parse(prompts.DirectorTaskTemplate)
 	if err != nil {
@@ -126,8 +148,8 @@ func (d *DirectorAgent) ProposeEvent(ctx context.Context, state DirectorState) (
 	resp, err := d.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.DirectorSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.8,
-		MaxTokens:    4096,
+		Temperature:  d.temperature,
+		MaxTokens:    d.maxTokens,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("llm call: %w", err)
@@ -183,8 +205,7 @@ func extractYAMLBlock(text string) string {
 	marker = "selected_event:"
 	idx = strings.Index(text, marker)
 	if idx >= 0 {
-		// Include everything — the YAML parser will get what it can
-		return text
+		return text[idx:]
 	}
 
 	// Last resort: return the whole text
@@ -250,119 +271,4 @@ func (d *DirectorAgent) convertToEvent(raw *RawEvent) *models.Event {
 	}
 
 	return evt
-}
-
-// PrintAnalysis prints the Director's analysis stages to the console for user review.
-func (d *DirectorOutput) PrintAnalysis() {
-	fmt.Println(strings.Repeat("─", 60))
-	fmt.Println("📋 DIRECTOR ANALYSIS")
-	fmt.Println(strings.Repeat("─", 60))
-
-	fmt.Println("\n📍 STAGE 1: STATE DIGEST")
-	fmt.Println(strings.Repeat("─", 40))
-	fmt.Println(wrapText(d.StateDigest, 70))
-
-	fmt.Println("\n🧵 STAGE 2: THREAD INVENTORY")
-	fmt.Println(strings.Repeat("─", 40))
-	for _, tv := range d.ThreadInventory {
-		icon := threadIcon(tv.Judgment)
-		fmt.Printf("  %s [%s] %s\n", icon, tv.HookID, tv.Rationale)
-	}
-	if len(d.ThreadInventory) == 0 {
-		fmt.Println("  (no unresolved threads)")
-	}
-
-	fmt.Println("\n🎭 STAGE 3: CHARACTER ARC STATUS")
-	fmt.Println(strings.Repeat("─", 40))
-	fmt.Println(wrapText(d.ArcStatus, 70))
-
-	fmt.Println("\n📈 STAGE 4: TENSION CALIBRATION")
-	fmt.Println(strings.Repeat("─", 40))
-	fmt.Println(wrapText(d.TensionCalibration, 70))
-
-	fmt.Println("\n💡 STAGE 5: EVENT CANDIDATES")
-	fmt.Println(strings.Repeat("─", 40))
-	for i, c := range d.Candidates {
-		fmt.Printf("  %d. %s (tension: %d/10)\n", i+1, c.Title, c.TensionEstimate)
-		fmt.Printf("     %s\n", wrapText(c.Description, 64))
-	}
-
-	fmt.Println("\n⚖️  STAGE 6: EVALUATION")
-	fmt.Println(strings.Repeat("─", 40))
-	for _, s := range d.Evaluation.Scores {
-		fmt.Printf("  %s: %d/25\n", s.Title, s.TotalScore())
-	}
-	fmt.Printf("\n  Selected: %s\n", d.Evaluation.Selected)
-	fmt.Printf("  Rationale: %s\n", wrapText(d.Evaluation.Rationale, 64))
-
-	fmt.Println("\n🎬 STAGE 7: SELECTED EVENT")
-	fmt.Println(strings.Repeat("─", 40))
-	evt := d.SelectedEvent
-	fmt.Printf("  Title: %s\n", evt.Title)
-	fmt.Printf("  Time: %s\n", evt.Time)
-	fmt.Printf("  Tone: %s | Tension: %d/10\n", evt.Tone, evt.TensionLevel)
-	fmt.Printf("  Director Intent: %s\n", evt.DirectorIntent)
-	fmt.Printf("  Description: %s\n", wrapText(evt.Description, 64))
-	if len(evt.FactsChanged) > 0 {
-		fmt.Println("  Facts Changed:")
-		for _, fc := range evt.FactsChanged {
-			fmt.Printf("    Before: %s\n", fc.Before)
-			fmt.Printf("    After:  %s\n", fc.After)
-		}
-	}
-	if len(evt.BeliefChanges) > 0 {
-		fmt.Println("  Belief Changes:")
-		for _, bc := range evt.BeliefChanges {
-			fmt.Printf("    %s: \"%s\" → \"%s\"\n", bc.Character, bc.Before, bc.After)
-		}
-	}
-	if len(evt.FutureHooks) > 0 {
-		fmt.Println("  Future Hooks Planted:")
-		for _, h := range evt.FutureHooks {
-			fmt.Printf("    [%s] %s (urgency: %s)\n", h.ID, h.Description, h.Urgency)
-		}
-	}
-	if len(evt.ResolvesHooks) > 0 {
-		fmt.Println("  Hooks Resolved:")
-		for _, h := range evt.ResolvesHooks {
-			fmt.Printf("    ✓ %s\n", h)
-		}
-	}
-	fmt.Println(strings.Repeat("─", 60))
-}
-
-func threadIcon(judgment string) string {
-	switch judgment {
-	case "pay_off_now":
-		return "🔔"
-	case "develop":
-		return "📌"
-	case "simmer":
-		return "💤"
-	default:
-		return "❓"
-	}
-}
-
-// wrapText wraps long text to a maximum width.
-func wrapText(text string, width int) string {
-	if len(text) <= width {
-		return text
-	}
-	var result strings.Builder
-	words := strings.Fields(text)
-	lineLen := 0
-	for i, word := range words {
-		if lineLen+len(word)+1 > width && lineLen > 0 {
-			result.WriteString("\n     ")
-			lineLen = 0
-		}
-		if i > 0 && lineLen > 0 {
-			result.WriteString(" ")
-			lineLen++
-		}
-		result.WriteString(word)
-		lineLen += len(word)
-	}
-	return result.String()
 }

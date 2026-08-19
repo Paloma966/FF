@@ -15,23 +15,44 @@ import (
 
 // ProtagonistAgent embodies the protagonist, processing events psychologically.
 type ProtagonistAgent struct {
-	llm llm.LLMClient
+	llm         llm.LLMClient
+	temperature float64
+	maxTokens   int
+	language    string
 }
 
 // NewProtagonistAgent creates a new ProtagonistAgent.
 func NewProtagonistAgent(llmClient llm.LLMClient) *ProtagonistAgent {
-	return &ProtagonistAgent{llm: llmClient}
+	return &ProtagonistAgent{llm: llmClient, temperature: 0.9, maxTokens: 2048, language: "zh"}
+}
+
+// setLLMSettings overrides the default temperature/maxTokens when non-zero.
+func (p *ProtagonistAgent) setLLMSettings(temperature float64, maxTokens int) {
+	if temperature > 0 {
+		p.temperature = temperature
+	}
+	if maxTokens > 0 {
+		p.maxTokens = maxTokens
+	}
+}
+
+// setLanguage overrides the output language ("zh" or "en").
+func (p *ProtagonistAgent) setLanguage(lang string) {
+	if lang != "" {
+		p.language = lang
+	}
 }
 
 // ProtagonistState is the input state for the protagonist's response.
 type ProtagonistState struct {
-	Name           string
-	Beliefs        []string
-	Goals          []string
-	Fears          []string
-	Values         []string
-	RecentMemories []models.Memory
-	Event          ProcessedEvent
+	Name             string
+	Beliefs          []string
+	Goals            []string
+	Fears            []string
+	Values           []string
+	RecentMemories   []models.Memory
+	Event            ProcessedEvent
+	OutputLanguage   string
 }
 
 // ProcessedEvent is a simplified view of an event for the protagonist prompt.
@@ -47,6 +68,7 @@ type ProcessedEvent struct {
 
 // ProcessEvent runs the protagonist's psychological processing of an event.
 func (p *ProtagonistAgent) ProcessEvent(ctx context.Context, state ProtagonistState) (*models.ProtagonistReaction, error) {
+	state.OutputLanguage = outputLanguageDirective(p.language)
 	var buf bytes.Buffer
 	tmpl, err := template.New("protagonist_task").Parse(prompts.ProtagonistTaskTemplate)
 	if err != nil {
@@ -59,8 +81,8 @@ func (p *ProtagonistAgent) ProcessEvent(ctx context.Context, state ProtagonistSt
 	resp, err := p.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.ProtagonistSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.9, // Slightly higher for creative psychological response
-		MaxTokens:    2048,
+		Temperature:  p.temperature,
+		MaxTokens:    p.maxTokens,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("llm call: %w", err)
@@ -186,49 +208,4 @@ func categorizeMemory(r *models.ProtagonistReaction) string {
 		return "trauma"
 	}
 	return "connection"
-}
-
-// PrintReaction displays the protagonist's reaction for user review.
-func PrintReaction(reaction *models.ProtagonistReaction, eventTitle string) {
-	fmt.Println(strings.Repeat("─", 60))
-	fmt.Printf("🎭 PROTAGONIST RESPONSE to: %s\n", eventTitle)
-	fmt.Println(strings.Repeat("─", 60))
-
-	fmt.Printf("\n💭 Emotional Response:\n  %s\n", wrapText(reaction.EmotionalResponse, 64))
-	fmt.Printf("\n🎯 Decision:\n  %s\n", wrapText(reaction.Decision, 64))
-
-	if len(reaction.NewBeliefs) > 0 {
-		fmt.Println("\n🆕 New Beliefs:")
-		for _, b := range reaction.NewBeliefs {
-			fmt.Printf("  + %s\n", b)
-		}
-	}
-	if len(reaction.ModifiedBeliefs) > 0 {
-		fmt.Println("\n🔄 Modified Beliefs:")
-		for _, b := range reaction.ModifiedBeliefs {
-			fmt.Printf("  ~ %s\n", b)
-		}
-	}
-	if len(reaction.AbandonedBeliefs) > 0 {
-		fmt.Println("\n❌ Abandoned Beliefs:")
-		for _, b := range reaction.AbandonedBeliefs {
-			fmt.Printf("  ✗ %s\n", b)
-		}
-	}
-	if len(reaction.StrengthenedValues) > 0 {
-		fmt.Println("\n💪 Strengthened Values:")
-		for _, v := range reaction.StrengthenedValues {
-			fmt.Printf("  ↑ %s\n", v)
-		}
-	}
-	if len(reaction.ChallengedValues) > 0 {
-		fmt.Println("\n⚡ Challenged Values:")
-		for _, v := range reaction.ChallengedValues {
-			fmt.Printf("  ⇵ %s\n", v)
-		}
-	}
-
-	fmt.Printf("\n🧠 Memory Formed:\n  %s\n", wrapText(reaction.MemoryFormed, 64))
-	fmt.Printf("\n💬 Internal Monologue:\n  \"%s\"\n", wrapText(reaction.InternalMonologue, 60))
-	fmt.Println(strings.Repeat("─", 60))
 }

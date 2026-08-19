@@ -59,6 +59,7 @@ func (p *ProtagonistAgent) VerifyEvent(ctx context.Context, in VerifyEventInput)
 		Threads      []models.FutureHook
 		RecentEvents []models.Event
 		EventYAML    string
+		OutputLanguage string
 	}
 	var buf bytes.Buffer
 	tmpl, err := template.New("verify_event_task").Parse(prompts.VerifyEventTaskTemplate)
@@ -71,6 +72,7 @@ func (p *ProtagonistAgent) VerifyEvent(ctx context.Context, in VerifyEventInput)
 		Threads:      in.Threads,
 		RecentEvents: in.RecentEvents,
 		EventYAML:    eventYAML,
+		OutputLanguage: outputLanguageDirective(p.language),
 	}); err != nil {
 		return VerificationVerdict{}, fmt.Errorf("render verify template: %w", err)
 	}
@@ -78,8 +80,8 @@ func (p *ProtagonistAgent) VerifyEvent(ctx context.Context, in VerifyEventInput)
 	resp, err := p.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.VerifyEventSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.3,
-		MaxTokens:    1024,
+		Temperature:  p.temperature,
+		MaxTokens:    p.maxTokens,
 	})
 	if err != nil {
 		return VerificationVerdict{}, fmt.Errorf("verify llm call: %w", err)
@@ -96,10 +98,11 @@ func (d *DirectorAgent) VerifyReaction(ctx context.Context, in VerifyReactionInp
 	}
 
 	type taskData struct {
-		Event        *models.Event
-		Character    *models.Character
-		Facts        []string
-		ReactionYAML string
+		Event          *models.Event
+		Character      *models.Character
+		Facts          []string
+		ReactionYAML   string
+		OutputLanguage string
 	}
 	var buf bytes.Buffer
 	tmpl, err := template.New("verify_reaction_task").Parse(prompts.VerifyReactionTaskTemplate)
@@ -111,6 +114,7 @@ func (d *DirectorAgent) VerifyReaction(ctx context.Context, in VerifyReactionInp
 		Character:    in.Character,
 		Facts:        in.Facts,
 		ReactionYAML: reactionYAML,
+		OutputLanguage: outputLanguageDirective(d.language),
 	}); err != nil {
 		return VerificationVerdict{}, fmt.Errorf("render verify template: %w", err)
 	}
@@ -118,8 +122,8 @@ func (d *DirectorAgent) VerifyReaction(ctx context.Context, in VerifyReactionInp
 	resp, err := d.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.VerifyReactionSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.3,
-		MaxTokens:    1024,
+		Temperature:  d.temperature,
+		MaxTokens:    d.maxTokens,
 	})
 	if err != nil {
 		return VerificationVerdict{}, fmt.Errorf("verify llm call: %w", err)
@@ -135,9 +139,10 @@ func (d *DirectorAgent) ReviseEvent(ctx context.Context, event *models.Event, ve
 	}
 
 	type taskData struct {
-		Issues      []string
-		Suggestions string
-		EventYAML   string
+		Issues         []string
+		Suggestions    string
+		EventYAML      string
+		OutputLanguage string
 	}
 	var buf bytes.Buffer
 	tmpl, err := template.New("revise_event_task").Parse(prompts.ReviseEventTaskTemplate)
@@ -148,6 +153,7 @@ func (d *DirectorAgent) ReviseEvent(ctx context.Context, event *models.Event, ve
 		Issues:      verdict.Issues,
 		Suggestions: verdict.Suggestions,
 		EventYAML:   eventYAML,
+		OutputLanguage: outputLanguageDirective(d.language),
 	}); err != nil {
 		return nil, fmt.Errorf("render revise template: %w", err)
 	}
@@ -155,8 +161,8 @@ func (d *DirectorAgent) ReviseEvent(ctx context.Context, event *models.Event, ve
 	resp, err := d.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.DirectorSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.7,
-		MaxTokens:    4096,
+		Temperature:  d.temperature,
+		MaxTokens:    d.maxTokens,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("revise llm call: %w", err)
@@ -191,10 +197,11 @@ func (p *ProtagonistAgent) ReviseReaction(ctx context.Context, event *models.Eve
 	summary := fmt.Sprintf("标题: %s\n时间: %s\n经过: %s", event.Title, event.Time, event.Description)
 
 	type taskData struct {
-		Issues       []string
-		Suggestions  string
-		EventSummary string
-		ReactionYAML string
+		Issues         []string
+		Suggestions    string
+		EventSummary   string
+		ReactionYAML   string
+		OutputLanguage string
 	}
 	var buf bytes.Buffer
 	tmpl, err := template.New("revise_reaction_task").Parse(prompts.ReviseReactionTaskTemplate)
@@ -206,6 +213,7 @@ func (p *ProtagonistAgent) ReviseReaction(ctx context.Context, event *models.Eve
 		Suggestions:  verdict.Suggestions,
 		EventSummary: summary,
 		ReactionYAML: reactionYAML,
+		OutputLanguage: outputLanguageDirective(p.language),
 	}); err != nil {
 		return nil, fmt.Errorf("render revise template: %w", err)
 	}
@@ -213,8 +221,8 @@ func (p *ProtagonistAgent) ReviseReaction(ctx context.Context, event *models.Eve
 	resp, err := p.llm.Complete(ctx, llm.CompletionRequest{
 		SystemPrompt: prompts.ProtagonistSystem,
 		UserPrompt:   buf.String(),
-		Temperature:  0.7,
-		MaxTokens:    2048,
+		Temperature:  p.temperature,
+		MaxTokens:    p.maxTokens,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("revise llm call: %w", err)
