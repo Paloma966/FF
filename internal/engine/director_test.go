@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chun/fiction_factory/internal/llm"
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/llm"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 func validDirectorYAML() string {

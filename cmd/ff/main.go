@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chun/fiction_factory/internal/cli"
+	"github.com/Paloma966/FF/internal/cli"
 )
 
 func main() {

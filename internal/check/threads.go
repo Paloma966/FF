@@ -3,7 +3,7 @@ package check
 import (
 	"fmt"
 
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 const maxStalledEvents = 5 // Events before a hook is flagged as stalled

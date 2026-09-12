@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chun/fiction_factory/internal/models"
-	"github.com/chun/fiction_factory/pkg/yamlutil"
+	"github.com/Paloma966/FF/internal/models"
+	"github.com/Paloma966/FF/pkg/yamlutil"
 )
 
 // Saver handles persisting project data to disk.

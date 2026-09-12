@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 // CheckTimeline verifies event ordering and detects temporal/participant conflicts.

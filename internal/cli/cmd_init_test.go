@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chun/fiction_factory/internal/storage"
+	"github.com/Paloma966/FF/internal/storage"
 )
 
 func TestScaffoldProjectRoundtrip(t *testing.T) {

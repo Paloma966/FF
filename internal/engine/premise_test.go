@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chun/fiction_factory/internal/llm"
+	"github.com/Paloma966/FF/internal/llm"
 )
 
 const premiseYAML = `title: 城郊来电

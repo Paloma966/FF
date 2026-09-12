@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chun/fiction_factory/internal/llm"
-	"github.com/chun/fiction_factory/internal/models"
-	"github.com/chun/fiction_factory/internal/storage"
+	"github.com/Paloma966/FF/internal/llm"
+	"github.com/Paloma966/FF/internal/models"
+	"github.com/Paloma966/FF/internal/storage"
 )
 
 const chapterProse = "# 第一章 测试标题\n\n正文内容。林恩打开了那封信。\n"

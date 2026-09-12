@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/chun/fiction_factory/internal/models"
-	"github.com/chun/fiction_factory/internal/storage"
+	"github.com/Paloma966/FF/internal/models"
+	"github.com/Paloma966/FF/internal/storage"
 	"github.com/spf13/cobra"
 )
 

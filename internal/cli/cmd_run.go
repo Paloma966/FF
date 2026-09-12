@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chun/fiction_factory/internal/check"
-	"github.com/chun/fiction_factory/internal/engine"
-	"github.com/chun/fiction_factory/internal/hotspot"
-	"github.com/chun/fiction_factory/internal/llm"
-	"github.com/chun/fiction_factory/internal/models"
-	"github.com/chun/fiction_factory/internal/storage"
+	"github.com/Paloma966/FF/internal/check"
+	"github.com/Paloma966/FF/internal/engine"
+	"github.com/Paloma966/FF/internal/hotspot"
+	"github.com/Paloma966/FF/internal/llm"
+	"github.com/Paloma966/FF/internal/models"
+	"github.com/Paloma966/FF/internal/storage"
 	"github.com/spf13/cobra"
 )
 

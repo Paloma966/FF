@@ -3,7 +3,7 @@ package check
 import (
 	"fmt"
 
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 // CheckCharacterDrift detects unmotivated belief reversals and personality inconsistencies.

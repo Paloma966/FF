@@ -7,9 +7,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/chun/fiction_factory/internal/llm"
-	"github.com/chun/fiction_factory/internal/models"
-	"github.com/chun/fiction_factory/internal/prompts"
+	"github.com/Paloma966/FF/internal/llm"
+	"github.com/Paloma966/FF/internal/models"
+	"github.com/Paloma966/FF/internal/prompts"
 	"gopkg.in/yaml.v3"
 )
 

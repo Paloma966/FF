@@ -1,4 +1,4 @@
-module github.com/chun/fiction_factory
+module github.com/Paloma966/FF
 
 go 1.26.4
 

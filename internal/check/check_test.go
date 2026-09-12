@@ -3,7 +3,7 @@ package check
 import (
 	"testing"
 
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 func TestCheckThreads_ForgottenHooks(t *testing.T) {

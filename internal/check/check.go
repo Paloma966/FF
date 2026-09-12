@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chun/fiction_factory/internal/models"
+	"github.com/Paloma966/FF/internal/models"
 )
 
 // Severity indicates the seriousness of an issue.

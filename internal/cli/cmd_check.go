@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chun/fiction_factory/internal/check"
-	"github.com/chun/fiction_factory/internal/storage"
+	"github.com/Paloma966/FF/internal/check"
+	"github.com/Paloma966/FF/internal/storage"
 	"github.com/spf13/cobra"
 )
 
